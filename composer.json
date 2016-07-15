@@ -1,0 +1,15 @@
+{
+    "name": "thegallagher/list-once",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "David Gallagher",
+            "email": "david@thegallagher.net"
+        }
+    ],
+    "require": {},
+    "suggest": {
+        "egeloen/http-adapter": "PSR-7 HTTP is required.",
+        "desarrolla2/cache": "Required for caching responses."
+    }
+}
