@@ -9,7 +9,12 @@
     ],
     "require": {},
     "suggest": {
-        "egeloen/http-adapter": "PSR-7 HTTP is required.",
+        "egeloen/http-adapter": "A PSR-7 HTTP implementation is required.",
         "desarrolla2/cache": "Required for caching responses."
+    },
+    "autoload": {
+        "psr-4": {
+            "ListOnce\\": "src/"
+        }
     }
 }
