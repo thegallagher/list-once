@@ -17,7 +17,7 @@ class ListOnce
     /**
      * End point URL
      */
-    const ENDPOINT_URL = 'http://www.listonce.com.au/api/%s?api_key=%s';
+    const ENDPOINT_URL = 'http://www.listonce.com.au/api/%s/?api_key=%s';
 
     /**
      * List once API key
@@ -233,5 +233,56 @@ class ListOnce
     public function getInteractiveFloorplans($query = [])
     {
         return new Response($this->executeQuery('get-interactive-floorplans', $query), 'floorplans', 'floorplan');
+    }
+
+    /**
+     * Subscribe a user to alerts
+     *
+     * @param string $email
+     * @param array $search
+     * @param array $query
+     *
+     * @return Response
+     */
+    public function alertSubscribe($email, $search = [], $query = [])
+    {
+        $query += [
+            'email_address' => $email,
+            'search_criteria' => http_build_query($search),
+            //'frequency' => 1,
+            //'alert_name' => 'test alert',
+        ];
+        return new Response($this->executeQuery('alerts/subscribe', $query), null, 'alert');
+    }
+
+    /**
+     * Get details about the subscription
+     *
+     * @param int $alertId
+     * @param array $query
+     *
+     * @return Response
+     */
+    public function getAlertDetails($alertId, $query = [])
+    {
+        return new Response($this->executeQuery('alerts/details/' . $alertId, $query), 'alert', 'alert');
+    }
+
+    /**
+     * Update existing fields of an alert
+     *
+     * @param int $alertId
+     * @param array $search
+     * @param array $query
+     *
+     * @return Response
+     */
+    public function updateAlert($alertId, $search = [], $query = [])
+    {
+        $query += [
+            'alert_id' => $alertId,
+            'search_criteria' => http_build_query($search),
+        ];
+        return new Response($this->executeQuery('alerts/update', $query), null, 'alert');
     }
 }
