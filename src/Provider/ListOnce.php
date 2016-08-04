@@ -17,7 +17,7 @@ class ListOnce
     /**
      * End point URL
      */
-    const ENDPOINT_URL = 'http://www.listonce.com.au/api/%s/?api_key=%s';
+    const ENDPOINT_URL = 'http://www.listonce.com.au/api/%s?api_key=%s';
 
     /**
      * List once API key
@@ -166,13 +166,13 @@ class ListOnce
     /**
      * Returns a list of the current details for a given client.
      *
-     * @param int $clientId
+     * @param array $query
      *
      * @return Response
      */
-    public function getOffice($clientId)
+    public function getOffices($query = [])
     {
-        return new Response($this->executeQuery('get-office', ['client_id' => $clientId]), null, 'office');
+        return new Response($this->executeQuery('get-office', $query), null, 'office');
     }
 
     /**
@@ -252,7 +252,7 @@ class ListOnce
             //'frequency' => 1,
             //'alert_name' => 'test alert',
         ];
-        return new Response($this->executeQuery('alerts/subscribe', $query), null, 'alert');
+        return new Response($this->executeQuery('alerts/subscribe/', $query), null, 'alert');
     }
 
     /**
@@ -283,6 +283,6 @@ class ListOnce
             'alert_id' => $alertId,
             'search_criteria' => http_build_query($search),
         ];
-        return new Response($this->executeQuery('alerts/update', $query), null, 'alert');
+        return new Response($this->executeQuery('alerts/update/', $query), null, 'alert');
     }
 }
