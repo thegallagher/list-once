@@ -34,6 +34,20 @@ class ListOnce
     protected $httpAdapter = null;
 
     /**
+     * Maximum redirects
+     *
+     * @var int
+     */
+    public $maxRedirects = 2;
+
+    /**
+     * Current redirect count
+     *
+     * @var int
+     */
+    protected $currentRedirects = 0;
+
+    /**
      * Constructor
      *
      * @param HttpAdapterInterface $httpAdapter
@@ -55,9 +69,27 @@ class ListOnce
      */
     public function executeQuery($function, $query = [])
     {
+        $this->currentRedirects = 0;
         $url = $this->buildQuery($function, $query);
-        $response = $this->httpAdapter->get($url);
+        $response = $this->get($url);
         return $this->parseResponse($response);
+    }
+
+    /**
+     * Do a get request. Follows redirects.
+     *
+     * @param string $url
+     *
+     * @return ResponseInterface
+     */
+    protected function get($url)
+    {
+        $response = $this->httpAdapter->get($url);
+        if ($response->hasHeader('Location') && $this->currentRedirects < $this->maxRedirects) {
+            $this->currentRedirects++;
+            return $this->get($response->getHeaderLine('Location'));
+        }
+        return $response;
     }
 
     /**
