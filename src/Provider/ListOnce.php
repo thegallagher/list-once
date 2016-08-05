@@ -134,6 +134,10 @@ class ListOnce
             throw new \RuntimeException('REST API error: ' . $result->error_message);
         }
 
+        if (!empty($result->ERROR)) {
+            throw new \RuntimeException('REST API error: ' . $result->ERROR);
+        }
+
         return $result;
     }
 
