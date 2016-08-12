@@ -158,7 +158,7 @@ class ListOnce
      */
     public function searchListings($query = [])
     {
-        $request = $this->buildRequest('get-listing', $query);
+        $request = $this->buildRequest('search-listings', $query);
         return $this->requestCollection($request, 'Listing');
     }
 

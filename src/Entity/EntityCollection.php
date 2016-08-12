@@ -97,7 +97,7 @@ class EntityCollection implements \Iterator, \ArrayAccess, \Countable
      * @param RequestInterface $request
      * @param string|null $dataType
      */
-    protected function __construct($data, $request, $dataType = null)
+    protected function __construct($data, RequestInterface $request, $dataType = null)
     {
         $this->validate($data);
         $this->setEntities($data);
@@ -119,11 +119,11 @@ class EntityCollection implements \Iterator, \ArrayAccess, \Countable
      *
      * @return static
      */
-    public static function make($data, $request, $dataType)
+    public static function make($data, RequestInterface $request, $dataType)
     {
-        $className = __NAMESPACE__ . '\\Entity\\' . $dataType . 'Collection';
+        $className = __NAMESPACE__ . '\\' . $dataType . 'Collection';
         if (class_exists($className)) {
-            return $className($data, $request);
+            return new $className($data, $request);
         }
         return new static($data, $request, $dataType);
     }
@@ -159,8 +159,6 @@ class EntityCollection implements \Iterator, \ArrayAccess, \Countable
             $this->entities = (array)$data;
         } elseif (isset($data->{$this->entityProperty})) {
             $this->entities = $data->{$this->entityProperty};
-        } else {
-            throw new \UnexpectedValueException('Data does not contain entities.');
         }
     }
 
@@ -174,12 +172,11 @@ class EntityCollection implements \Iterator, \ArrayAccess, \Countable
     protected function setPaginationData($data)
     {
         if ($this->hasPagination) {
-            $this->paginationData = [
-                'currentPage' => $data->{$this->pageProperty},
-                'totalPages' => $data->{$this->totalPagesProperty},
-                'totalEntities' => $data->{$this->totalEntitiesProperty},
-                'perPage' => $data->{$this->perPageProperty},
-            ];
+            $currentPage = isset($data->{$this->pageProperty}) ? $data->{$this->pageProperty} : 1;
+            $totalPages = isset($data->{$this->totalPagesProperty}) ? $data->{$this->totalPagesProperty} : 1;
+            $totalEntities = isset($data->{$this->totalEntitiesProperty}) ? $data->{$this->totalEntitiesProperty} : 0;
+            $perPage = isset($data->{$this->perPageProperty}) ? $data->{$this->perPageProperty} : 0;
+            $this->paginationData = compact('currentPage', 'totalPages', 'totalEntities', 'perPage');
         }
     }
 
@@ -234,7 +231,7 @@ class EntityCollection implements \Iterator, \ArrayAccess, \Countable
      */
     public function current()
     {
-        return Entity::make($this->entities[$this->iteratorIndex], $this->dataType);
+        return Entity::make($this->entities[$this->iteratorIndex], $this->request, $this->dataType);
     }
 
     /**
@@ -298,7 +295,7 @@ class EntityCollection implements \Iterator, \ArrayAccess, \Countable
      */
     public function offsetGet($offset)
     {
-        return Entity::make($this->entities[$offset], $this->dataType);
+        return Entity::make($this->entities[$offset], $this->request, $this->dataType);
     }
 
     /**

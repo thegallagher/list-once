@@ -34,7 +34,7 @@ class Entity
      * @param RequestInterface $request
      * @param string|null $dataType The data type of this entity
      */
-    protected function __construct($data, $request, $dataType = null)
+    protected function __construct($data, RequestInterface $request, $dataType = null)
     {
         $this->validate($data);
         $this->data = $data;
@@ -51,11 +51,11 @@ class Entity
      *
      * @return static
      */
-    public static function make($data, $request, $dataType = null)
+    public static function make($data, RequestInterface $request, $dataType = null)
     {
-        $className = __NAMESPACE__ . '\\Entity\\' . $dataType;
+        $className = __NAMESPACE__ . '\\' . $dataType;
         if (class_exists($className)) {
-            return $className($data);
+            return new $className($data);
         }
         return new static($data, $request, $dataType);
     }
@@ -87,7 +87,7 @@ class Entity
      */
     public function __get($name)
     {
-        return $this->data{$name};
+        return $this->data->{$name};
     }
 
     /**
@@ -99,7 +99,7 @@ class Entity
      */
     public function __isset($name)
     {
-        return isset($this->data{$name});
+        return isset($this->data->{$name});
     }
 
     /**
