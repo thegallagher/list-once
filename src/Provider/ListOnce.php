@@ -2,7 +2,7 @@
 
 namespace ListOnce\Provider;
 
-use GuzzleHttp\Client;
+use Http\Client\HttpClient as Client;
 use GuzzleHttp\Psr7\Request;
 use ListOnce\Entity\Entity;
 use ListOnce\Entity\EntityCollection;
@@ -80,7 +80,7 @@ class ListOnce
      */
     public function sendRequest(RequestInterface $request)
     {
-        $response = $this->httpClient->send($request);
+        $response = $this->httpClient->sendRequest($request);
         return $this->parseResponse($response);
     }
 

@@ -2,7 +2,8 @@
 
 namespace ListOnce;
 
-use GuzzleHttp\Client;
+use Http\Client\Socket\Client as Client;
+use Http\Discovery\MessageFactoryDiscovery;
 use ListOnce\Provider\ListOnce;
 use ListOnce\Provider\ListOnceCached;
 use Psr\Cache\CacheItemPoolInterface;
@@ -25,9 +26,10 @@ class Factory
      */
     public static function makeListOnce($apiKey, CacheItemPoolInterface $cacheItemPool = null)
     {
-        $httpClient = new Client();
+        $httpClient = new Client(MessageFactoryDiscovery::find());
         if ($cacheItemPool) {
-            return new ListOnceCached($apiKey, $httpClient, $cacheItemPool);
+            throw new \RuntimeException('Not implemented');
+            //return new ListOnceCached($apiKey, $httpClient, $cacheItemPool);
         }
         return new ListOnce($apiKey, $httpClient);
     }
