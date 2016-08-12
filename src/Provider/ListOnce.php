@@ -474,4 +474,17 @@ class ListOnce
         $request = $this->buildRequest('external-links', $query);
         return $this->requestCollection($request, 'ExternalLink');
     }
+
+    /**
+     * Return a list of categories which contain listings
+     *
+     * This function is undocumented.
+     *
+     * @return object
+     */
+    public function getCategories()
+    {
+        $request = $this->buildRequest('get-categories');
+        return $this->sendRequest($request);
+    }
 }
