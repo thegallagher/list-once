@@ -2,9 +2,13 @@
 
 namespace ListOnce\Provider;
 
-use Ivory\HttpAdapter\HttpAdapterInterface;
-use Ivory\HttpAdapter\Message\ResponseInterface;
-use ListOnce\Response;
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\Request;
+use ListOnce\Entity\Entity;
+use ListOnce\Entity\EntityCollection;
+use ListOnce\Message;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 
 /**
  * Class ListOnce
@@ -17,7 +21,7 @@ class ListOnce
     /**
      * End point URL
      */
-    const ENDPOINT_URL = 'http://www.listonce.com.au/api/%s?api_key=%s';
+    const ENDPOINT_URI = 'http://www.listonce.com.au/api/%s?api_key=%s';
 
     /**
      * List once API key
@@ -29,82 +33,81 @@ class ListOnce
     /**
      * HTTP Adapter
      *
-     * @var HttpAdapterInterface
+     * @var Client
      */
-    protected $httpAdapter = null;
-
-    /**
-     * Maximum redirects
-     *
-     * @var int
-     */
-    public $maxRedirects = 2;
-
-    /**
-     * Current redirect count
-     *
-     * @var int
-     */
-    protected $currentRedirects = 0;
+    protected $httpClient = null;
 
     /**
      * Constructor
      *
-     * @param HttpAdapterInterface $httpAdapter
      * @param string $apiKey
+     * @param Client $httpClient
      */
-    public function __construct(HttpAdapterInterface $httpAdapter, $apiKey)
+    public function __construct($apiKey, Client $httpClient)
     {
-        $this->httpAdapter = $httpAdapter;
         $this->apiKey = $apiKey;
-    }
-
-    /**
-     * Query the API
-     *
-     * @param string $function
-     * @param array $query
-     *
-     * @return object
-     */
-    public function executeQuery($function, $query = [])
-    {
-        $this->currentRedirects = 0;
-        $url = $this->buildQuery($function, $query);
-        $response = $this->get($url);
-        return $this->parseResponse($response);
-    }
-
-    /**
-     * Do a get request. Follows redirects.
-     *
-     * @param string $url
-     *
-     * @return ResponseInterface
-     */
-    protected function get($url)
-    {
-        $response = $this->httpAdapter->get($url);
-        if ($response->hasHeader('Location') && $this->currentRedirects < $this->maxRedirects) {
-            $this->currentRedirects++;
-            return $this->get($response->getHeaderLine('Location'));
-        }
-        return $response;
+        $this->httpClient = $httpClient;
     }
 
     /**
      * Build a query URL to the API
      *
-     * @return string
+     * @param string $function API function
+     * @param array $data Request data
+     * @param string $method The request method
+     *
+     * @return Request
      */
-    protected function buildQuery($function, $query)
+    public function buildRequest($function, $data = [], $method = 'get')
     {
-        $url = sprintf(self::ENDPOINT_URL, $function, $this->apiKey);
-        $queryStr = http_build_query($query);
-        if (!empty($queryStr)) {
-            $url .= '&'  . $queryStr;
+        $uri = sprintf(self::ENDPOINT_URI, $function, $this->apiKey);
+        $query = http_build_query($data, '', '&');
+        if (strtolower($method) === 'get') {
+            if (!empty($query)) {
+                $uri .= '&'  . $query;
+            }
+            return new Request($method, $uri);
         }
-        return $url;
+        return new Request($method, $uri, [], $query);
+    }
+
+    /**
+     * Send the request and return the parsed response
+     *
+     * @param RequestInterface $request
+     *
+     * @return object
+     */
+    public function sendRequest(RequestInterface $request)
+    {
+        $response = $this->httpClient->send($request);
+        return $this->parseResponse($response);
+    }
+
+    /**
+     * Send the request and return the parsed response
+     *
+     * @param RequestInterface $request
+     * @param string $dataType
+     *
+     * @return Entity
+     */
+    public function requestEntity(RequestInterface $request, $dataType)
+    {
+        return Entity::make($this->sendRequest($request), $request, $dataType);
+    }
+
+    /**
+     * Send the request and return the parsed response
+     *
+     * @param RequestInterface $request
+     * @param string $dataType
+     *
+     * @return EntityCollection
+     */
+    public function requestCollection(RequestInterface $request, $dataType)
+    {
+        return EntityCollection::make($this->sendRequest($request), $request, $dataType);
     }
 
     /**
@@ -130,14 +133,6 @@ class ListOnce
             throw new \RuntimeException('Unable to parse response JSON: ' . $error);
         }
 
-        if (!empty($result->error_message)) {
-            throw new \RuntimeException('REST API error: ' . $result->error_message);
-        }
-
-        if (!empty($result->ERROR)) {
-            throw new \RuntimeException('REST API error: ' . $result->ERROR);
-        }
-
         return $result;
     }
 
@@ -146,11 +141,12 @@ class ListOnce
      *
      * @param int $listingId
      *
-     * @return Response
+     * @return Entity
      */
     public function getListing($listingId)
     {
-        return new Response($this->executeQuery('get-listing', ['listing_id' => $listingId]), null, 'listing');
+        $request = $this->buildRequest('get-listing', ['listing_id' => $listingId]);
+        return $this->requestEntity($request, 'Listing');
     }
 
     /**
@@ -158,11 +154,12 @@ class ListOnce
      *
      * @param array $query
      *
-     * @return Response
+     * @return EntityCollection
      */
     public function searchListings($query = [])
     {
-        return new Response($this->executeQuery('search-listings', $query), 'listings', 'listing');
+        $request = $this->buildRequest('get-listing', $query);
+        return $this->requestCollection($request, 'Listing');
     }
 
     /**
@@ -170,11 +167,12 @@ class ListOnce
      *
      * @param array $query
      *
-     * @return Response
+     * @return EntityCollection
      */
     public function searchInspectionTimes($query = [])
     {
-        return new Response($this->executeQuery('search-inspection-times', $query), 'inspection_times', 'inspection-time');
+        $request = $this->buildRequest('search-inspection-times', $query);
+        return $this->requestCollection($request, 'InspectionTime');
     }
 
     /**
@@ -182,21 +180,23 @@ class ListOnce
      *
      * @param array $query
      *
-     * @return Response
+     * @return EntityCollection
      */
     public function searchAuctions($query = [])
     {
-        return new Response($this->executeQuery('search-auctions', $query), 'auctions', 'auction');
+        $request = $this->buildRequest('search-auctions', $query);
+        return $this->requestCollection($request, 'Auction');
     }
 
     /**
      * Returns a list of distinct suburbs which have at least one listing. Useful in search forms.
      *
-     * @return Response
+     * @return array
      */
     public function getSuburbs()
     {
-        return new Response($this->executeQuery('get-suburbs'), null, 'suburb');
+        $request = $this->buildRequest('get-suburbs');
+        return $this->sendRequest($request);
     }
 
     /**
@@ -204,11 +204,12 @@ class ListOnce
      *
      * @param array $query
      *
-     * @return Response
+     * @return EntityCollection
      */
     public function getOffices($query = [])
     {
-        return new Response($this->executeQuery('get-office', $query), null, 'office');
+        $request = $this->buildRequest('get-office', $query);
+        return $this->requestCollection($request, 'Office');
     }
 
     /**
@@ -216,11 +217,12 @@ class ListOnce
      *
      * @param array $query
      *
-     * @return Response
+     * @return EntityCollection
      */
     public function getAgents($query = [])
     {
-        return new Response($this->executeQuery('get-agents', $query), 'agents', 'agent');
+        $request = $this->buildRequest('get-agents', $query);
+        return $this->requestCollection($request, 'Agent');
     }
 
     /**
@@ -228,11 +230,12 @@ class ListOnce
      *
      * @param array $query
      *
-     * @return Response
+     * @return EntityCollection
      */
     public function getNews($query = [])
     {
-        return new Response($this->executeQuery('get-news', $query), null, 'news');
+        $request = $this->buildRequest('get-news', $query);
+        return $this->requestCollection($request, 'News');
     }
 
     /**
@@ -240,11 +243,12 @@ class ListOnce
      *
      * @param array $query
      *
-     * @return Response
+     * @return EntityCollection
      */
     public function getTestimonials($query = [])
     {
-        return new Response($this->executeQuery('get-testimonials', $query), null, 'testimonial');
+        $request = $this->buildRequest('get-testimonials', $query);
+        return $this->requestCollection($request, 'Testimonial');
     }
 
     /**
@@ -252,11 +256,197 @@ class ListOnce
      *
      * @param array $query
      *
-     * @return Response
+     * @return EntityCollection
      */
     public function getFeaturedListings($query = [])
     {
-        return new Response($this->executeQuery('get-featured-listings', $query), 'featured_listings', 'listing');
+        $request = $this->buildRequest('get-featured-listings', $query);
+        return $this->requestCollection($request, 'Listing');
+    }
+
+    /**
+     * Uses the ListOnce system to email from one user to another and record statistics
+     *
+     * @todo return a Message instance
+     *
+     * @param int $listingId
+     * @param string $fromEmail
+     * @param string $toEmail
+     * @param string $subject
+     * @param string $message
+     * @param array $query
+     *
+     * @return object
+     */
+    public function emailFriend($listingId, $fromEmail, $toEmail, $subject, $message, $query = [])
+    {
+        $query += [
+            'listing_id' => $listingId,
+            'from_email' => $fromEmail,
+            'to_email' => $toEmail,
+            'subject' => $subject,
+            'message' => $message,
+        ];
+        $request = $this->buildRequest('email-a-friend', $query, 'post');
+        return $this->sendRequest($request);
+    }
+
+    /**
+     * Uses the ListOnce system to email the Listing Agent/Office and record statistics
+     *
+     * @todo return a Message instance
+     *
+     * @param int $listingId
+     * @param string $fromEmail
+     * @param string $message
+     * @param array $query
+     *
+     * @return object
+     */
+    public function contactAgentListing($listingId, $name, $fromEmail, $message, $query = [])
+    {
+        $query += [
+            'listing_id' => $listingId,
+            'name' => $name,
+            'from_email' => $fromEmail,
+            'message' => $message,
+        ];
+        $request = $this->buildRequest('contact-enquiry', $query, 'post');
+        return $this->sendRequest($request);
+    }
+
+    /**
+     * Uses the ListOnce system to email the Agent Directly
+     *
+     * @todo return a Message instance
+     *
+     * @param int $listingId
+     * @param string $fromEmail
+     * @param string $message
+     * @param array $query
+     *
+     * @return object
+     */
+    public function contactAgent($listingId, $name, $fromEmail, $message, $query = [])
+    {
+        $query += [
+            'listing_id' => $listingId,
+            'name' => $name,
+            'from_email' => $fromEmail,
+            'message' => $message,
+        ];
+        $request = $this->buildRequest('agent-contact-enquiry', $query, 'post');
+        return $this->sendRequest($request);
+    }
+
+    /**
+     * Uses the ListOnce system to email the Office Directly
+     *
+     * @todo return a Message instance
+     *
+     * @param int $clientId Office ID
+     * @param string $fromEmail
+     * @param string $message
+     * @param array $query
+     *
+     * @return object
+     */
+    public function contactOffice($clientId, $name, $fromEmail, $message, $query = [])
+    {
+        $query += [
+            'client_id' => $clientId,
+            'name' => $name,
+            'from_email' => $fromEmail,
+            'message' => $message,
+        ];
+        $request = $this->buildRequest('office-contact-enquiry', $query, 'post');
+        return $this->sendRequest($request);
+    }
+
+    /**
+     * Returns a list of current alert subscribers for a given group.
+     *
+     * @param array $query
+     *
+     * @return EntityCollection
+     */
+    public function getAlertList($query = [])
+    {
+        $request = $this->buildRequest('alerts/list/', $query);
+        return $this->requestCollection($request, 'Alert');
+    }
+
+    /**
+     * Creates a new alert subscription.
+     *
+     * @todo return a Message instance
+     *
+     * @param string $email
+     * @param array $search
+     * @param array $query
+     *
+     * @return object
+     */
+    public function alertSubscribe($email, $search = [], $query = [])
+    {
+        $query += [
+            'email_address' => $email,
+            'search_criteria' => http_build_query($search),
+        ];
+        $request = $this->buildRequest('alerts/subscribe/', $query);
+        return $this->sendRequest($request);
+    }
+
+    /**
+     * Returns an object containing details about the subscription.
+     *
+     * @param int $alertId
+     *
+     * @return Entity
+     */
+    public function getAlertDetails($alertId)
+    {
+        $request = $this->buildRequest('alerts/details/' . $alertId . '/');
+        return $this->requestEntity($request, 'Alert');
+    }
+
+    /**
+     * Update existing fields of an alert
+     *
+     * @todo return a Message instance
+     *
+     * @param int $alertId
+     * @param array $search
+     * @param array $query
+     *
+     * @return object
+     */
+    public function alertUpdate($alertId, $search = [], $query = [])
+    {
+        $query += [
+            'alert_id' => $alertId,
+            'search_criteria' => http_build_query($search),
+        ];
+        $request = $this->buildRequest('alerts/update/', $query);
+        return $this->sendRequest($request);
+    }
+
+    /**
+     * Update existing fields of an alert
+     *
+     * @todo return a Message instance
+     *
+     * @param int $alertId
+     *
+     * @return object
+     */
+    public function alertUnsubscribe($alertId)
+    {
+        $query = [
+            'alert_id' => $alertId,
+        ];
+        $request = $this->buildRequest('alerts/unsubscribe/', $query);
+        return $this->sendRequest($request);
     }
 
     /**
@@ -264,61 +454,24 @@ class ListOnce
      *
      * @param array $query
      *
-     * @return Response
+     * @return EntityCollection
      */
     public function getInteractiveFloorplans($query = [])
     {
-        return new Response($this->executeQuery('get-interactive-floorplans', $query), 'floorplans', 'floorplan');
+        $request = $this->buildRequest('get-interactive-floorplans', $query);
+        return $this->requestCollection($request, 'Floorplan');
     }
 
     /**
-     * Subscribe a user to alerts
+     * Return floorplans for a property
      *
-     * @param string $email
-     * @param array $search
      * @param array $query
      *
-     * @return Response
+     * @return EntityCollection
      */
-    public function alertSubscribe($email, $search = [], $query = [])
+    public function getExternalLinks($query = [])
     {
-        $query += [
-            'email_address' => $email,
-            'search_criteria' => http_build_query($search),
-            //'frequency' => 1,
-            //'alert_name' => 'test alert',
-        ];
-        return new Response($this->executeQuery('alerts/subscribe/', $query), null, 'alert');
-    }
-
-    /**
-     * Get details about the subscription
-     *
-     * @param int $alertId
-     * @param array $query
-     *
-     * @return Response
-     */
-    public function getAlertDetails($alertId, $query = [])
-    {
-        return new Response($this->executeQuery('alerts/details/' . $alertId, $query), 'alert', 'alert');
-    }
-
-    /**
-     * Update existing fields of an alert
-     *
-     * @param int $alertId
-     * @param array $search
-     * @param array $query
-     *
-     * @return Response
-     */
-    public function updateAlert($alertId, $search = [], $query = [])
-    {
-        $query += [
-            'alert_id' => $alertId,
-            'search_criteria' => http_build_query($search),
-        ];
-        return new Response($this->executeQuery('alerts/update/', $query), null, 'alert');
+        $request = $this->buildRequest('external-links', $query);
+        return $this->requestCollection($request, 'ExternalLink');
     }
 }

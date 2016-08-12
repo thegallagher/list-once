@@ -2,8 +2,8 @@
 
 namespace ListOnce\Provider;
 
-use Ivory\HttpAdapter\AbstractHttpAdapter;
-use Desarrolla2\Cache\Adapter\AbstractAdapter;
+use GuzzleHttp\Client;
+use Psr\Cache\CacheItemPoolInterface;
 
 /**
  * Class ListOnceCached
@@ -20,20 +20,22 @@ class ListOnceCached extends ListOnce
      *
      * @var int
      */
-    protected $cacheAdapter = null;
+    protected $cacheItemPool = null;
 
     /**
      * Constructor
      *
-     * @param AbstractHttpAdapter $httpAdapter
-     * @param AbstractAdapter $cacheAdapter
      * @param string $apiKey
+     * @param Client $httpClient
+     * @param CacheItemPoolInterface $cacheItemPool
      */
-    public function __construct(AbstractHttpAdapter $httpAdapter, AbstractAdapter $cacheAdapter, $apiKey)
+    public function __construct($apiKey, Client $httpClient, CacheItemPoolInterface $cacheItemPool)
     {
-        $this->cacheAdapter = $cacheAdapter;
-        parent::__construct($httpAdapter, $apiKey);
+        parent::__construct($apiKey, $httpClient);
+        $this->cacheItemPool = $cacheItemPool;
     }
+
+
 
     /**
      * Query the API

@@ -1,5 +1,6 @@
 {
     "name": "thegallagher/list-once",
+    "type": "library",
     "license": "MIT",
     "authors": [
         {
@@ -7,10 +8,9 @@
             "email": "david@thegallagher.net"
         }
     ],
-    "require": {},
-    "suggest": {
-        "egeloen/http-adapter": "A PSR-7 HTTP implementation is required.",
-        "desarrolla2/cache": "Required for caching responses."
+    "require": {
+        "guzzlehttp/guzzle": "~6.0",
+        "tedivm/stash": "~0.14.1"
     },
     "autoload": {
         "psr-4": {
