@@ -225,6 +225,16 @@ class EntityCollection implements \Iterator, \ArrayAccess, \Countable
     }
 
     /**
+     * Check if this collection is empty
+     *
+     * @return bool
+     */
+    public function isEmpty()
+    {
+        return count($this) < 1;
+    }
+
+    /**
      * Return the current element
      *
      * @return Entity Can return any type.
