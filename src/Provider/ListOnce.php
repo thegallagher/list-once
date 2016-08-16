@@ -4,8 +4,14 @@ namespace ListOnce\Provider;
 
 use Http\Client\HttpClient as Client;
 use GuzzleHttp\Psr7\Request;
+use ListOnce\Entity\AgentCollection;
+use ListOnce\Entity\AuctionCollection;
 use ListOnce\Entity\Entity;
 use ListOnce\Entity\EntityCollection;
+use ListOnce\Entity\ExternalLinksCollection;
+use ListOnce\Entity\FloorplansCollection;
+use ListOnce\Entity\InspectionTimeCollection;
+use ListOnce\Entity\ListingCollection;
 use ListOnce\Message;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -154,7 +160,7 @@ class ListOnce
      *
      * @param array $query
      *
-     * @return EntityCollection
+     * @return ListingCollection
      */
     public function searchListings($query = [])
     {
@@ -167,7 +173,7 @@ class ListOnce
      *
      * @param array $query
      *
-     * @return EntityCollection
+     * @return InspectionTimeCollection
      */
     public function searchInspectionTimes($query = [])
     {
@@ -180,7 +186,7 @@ class ListOnce
      *
      * @param array $query
      *
-     * @return EntityCollection
+     * @return AuctionCollection
      */
     public function searchAuctions($query = [])
     {
@@ -217,7 +223,7 @@ class ListOnce
      *
      * @param array $query
      *
-     * @return EntityCollection
+     * @return AgentCollection
      */
     public function getAgents($query = [])
     {
@@ -256,7 +262,7 @@ class ListOnce
      *
      * @param array $query
      *
-     * @return EntityCollection
+     * @return ListingCollection
      */
     public function getFeaturedListings($query = [])
     {
@@ -454,7 +460,7 @@ class ListOnce
      *
      * @param array $query
      *
-     * @return EntityCollection
+     * @return FloorplansCollection
      */
     public function getInteractiveFloorplans($query = [])
     {
@@ -467,7 +473,7 @@ class ListOnce
      *
      * @param array $query
      *
-     * @return EntityCollection
+     * @return ExternalLinksCollection
      */
     public function getExternalLinks($query = [])
     {

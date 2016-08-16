@@ -2,7 +2,7 @@
 
 namespace ListOnce\Entity;
 
-class ListingCollection extends EntityCollection
+class AuctionCollection extends EntityCollection
 {
     /**
      * Does this collection use pagination?
